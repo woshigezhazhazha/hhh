@@ -44,8 +44,8 @@ public class SocketThread implements Runnable {
 				}
 				else{
 					outputStream.writeUTF(yesAnswer);
+					outputStream.writeInt(num);
 				}
-				outputStream.writeUTF(yesAnswer);
 			}
 			else if(cmdkind.equals("studentRegister")){
 				String name=inputStream.readUTF();
@@ -71,7 +71,62 @@ public class SocketThread implements Runnable {
 				}
 				else{
 					outputStream.writeUTF(yesAnswer);
+					outputStream.writeInt(num);
 				}
+			}
+			else if(cmdkind.equals("setClass")){
+				String className=inputStream.readUTF();
+				int teacherNum=inputStream.readInt();
+				int timeLimit=inputStream.readInt();
+				
+				//search if the class name has been used
+				String checksql="select * from classInfo where name='"+className+"'";
+				resultSet=	DBUtils.select(connection, checksql);
+				if(resultSet.next()){
+					//the class name already exists
+					outputStream.writeInt(-2);
+					outputStream.close();
+					inputStream.close();
+					socket.close();
+					return;
+				}
+				
+				int num=0;
+				String numsql="select max(num) from classInfo";
+				resultSet=DBUtils.select(connection, numsql);
+				if(resultSet.next()){
+					num=resultSet.getInt(1);
+				}
+				num++;
+				//create class sql
+				String sql="insert into classInfo values("+num+",'"+className+"',"+timeLimit+","+teacherNum+")";
+				int result=DBUtils.insert(connection, sql);
+				if(result==-1){
+					outputStream.writeInt(-1);
+				}
+				else{
+					//create a signin info table for this class 
+					String classTable="create table "+num+"(stuNum int,siginTime String)";
+					int createClassTable=DBUtils.createTable(connection,classTable);
+					if(createClassTable==-1){
+						//delete this class info from the classInfo table
+						String deleteSql="delete from classInfo where name='"+className+"'";
+						DBUtils.select(connection, deleteSql);
+						outputStream.writeInt(-1);
+					}
+					else{
+						//successfully created
+						outputStream.writeInt(1);
+						//return the class number
+						outputStream.writeInt(num);
+					}
+				}
+			}
+			else if(cmdkind.equals("startSignin")){
+				
+			}
+			else if(cmdkind.equals("signin")){
+				
 			}
 			inputStream.close();
 			outputStream.close();

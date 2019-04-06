@@ -13,6 +13,8 @@ public class main {
 	//创建注册信息表
 	private static final String createStuReg="create table studentReg(num int primary key,name nvarchar(10),psw nvarchar(20),idnum nvarchar(20),major nvarchar(40))";
 	private static final String createTeaReg="create table teacherReg(num int primary key,name nvarchar(10),psw nvarchar(20))";
+	//create class info table
+	private static final String createClassInfo="create table classInfo(num int primary key,name nvarchar(40),timeLimit int,teacherNum int)";
 
 	public static void main(String args[]){
 		//连接数据库
@@ -27,6 +29,10 @@ public class main {
 			int createtea=DBUtils.createTable(connection, createTeaReg);
 			if(createtea!=-1){
 				System.out.println("teachers' register table is created");
+			}
+			int createclass=DBUtils.createTable(connection, createClassInfo);
+			if(createclass!=-1){
+				System.out.println("class info table is created");
 			}
 		}
 		
