@@ -57,6 +57,18 @@ public class DBUtils {
 		return -1;
 	}
 	
+	public static int update(Connection connection,String sql){
+		try{
+			statement=connection.prepareStatement(sql);
+			int count=statement.executeUpdate();
+			return count;
+		}catch (SQLException exception) {
+			// TODO: handle exception
+			exception.printStackTrace();
+		}
+		return -1;
+	}
+	
 	public static int createTable(Connection connection,String sql){
 		try{
 			statement=connection.prepareStatement(sql);

@@ -17,4 +17,11 @@ public class DistanceUtils {
         s = s * 1000;
         return s;
     }
+    
+    public static boolean isBetweenDistance(double longitude1,double latitude1,double longitude2,double latitude2){
+    	if(getDistance(longitude1, latitude1, longitude2, latitude2)<200)
+    		return true;
+    	return false;
+    }
+    
 }
