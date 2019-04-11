@@ -4,8 +4,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.ResultSet;
+import java.sql.Time;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
+
+import javafx.scene.chart.PieChart.Data;
 
 public class SocketThread implements Runnable {
 	
@@ -48,6 +54,8 @@ public class SocketThread implements Runnable {
 					outputStream.writeInt(num);
 				}
 			}
+			
+			
 			else if(cmdkind.equals("studentRegister")){
 				String name=inputStream.readUTF();
 				String psw=inputStream.readUTF();
@@ -75,6 +83,8 @@ public class SocketThread implements Runnable {
 					outputStream.writeInt(num);
 				}
 			}
+			
+			
 			else if(cmdkind.equals("setClass")){
 				String className=inputStream.readUTF();
 				int teacherNum=inputStream.readInt();
@@ -107,7 +117,7 @@ public class SocketThread implements Runnable {
 				}
 				else{
 					//create a signin info table for this class 
-					String classTable="create table "+className+"课堂签到信息(stuNum int,siginTime nvarchar(20))";
+					String classTable="create table "+className+"课堂签到信息(stuNum int,siginTime datetime)";
 					int createClassTable=DBUtils.createTable(connection,classTable);
 					
 					//create a talbe to show students who add this class
@@ -128,6 +138,8 @@ public class SocketThread implements Runnable {
 					}
 				}
 			}
+			
+			
 			else if(cmdkind.equals("addClass")){
 				String className=inputStream.readUTF();
 				String checkClass="select * from classInfo where name='"+className+"'";
@@ -149,6 +161,8 @@ public class SocketThread implements Runnable {
 					outputStream.writeInt(0);
 				
 			}
+			
+			
 			else if(cmdkind.equals("startSignin")){
 				String name=inputStream.readUTF();
 				String opensql="update classInfo set isOpen=1 where name='"+name+"'";
@@ -183,7 +197,11 @@ public class SocketThread implements Runnable {
 					outputStream.writeInt(-2);
 				}
 			}
+			
+			
 			else if(cmdkind.equals("signin")){
+				//get system time first
+				Date time=new Date(System.currentTimeMillis());
 				int classOpen=0;
 				double classLatitude=0;
 				double classLongitude=0;
@@ -205,9 +223,8 @@ public class SocketThread implements Runnable {
 					}
 					
 					int stuNum=inputStream.readInt();
-					String time=inputStream.readUTF();
 					
-					String insertSignin="insert into "+className+"课堂签到信息 values("+stuNum+",'"+time+"')";
+					String insertSignin="insert into "+className+"课堂签到信息 values("+stuNum+","+time+")";
 					int result=DBUtils.insert(connection, insertSignin);
 					if(result>0){
 						outputStream.writeInt(1);
@@ -221,6 +238,120 @@ public class SocketThread implements Runnable {
 					outputStream.writeInt(-2);
 				}
 			}
+			
+			
+			else if(cmdkind.equals("classDetails")){
+				String className=inputStream.readUTF();
+				String getData="select * from "+className+"课堂学生信息 ";
+				resultSet=DBUtils.select(connection, getData);
+				while(resultSet.next()){
+					String name=resultSet.getString("stuName");
+					String stuid=resultSet.getString("stuId");
+					String major=resultSet.getString("stuMajor");
+					String stuInfo=name+"("+stuid+")"+"("+major+")";
+					outputStream.writeUTF(stuInfo);
+				}
+				outputStream.writeUTF("@@@the stu info is at an end!!!!");	
+			}
+			
+			
+			else if(cmdkind.equals("checkAll")){
+				String className=inputStream.readUTF();
+				String getData="select name,idnum,count(stuNum) "
+						+ "from studentReg,"+className+"课堂签到信息 "
+								+ "where studentReg.idnum="+className+"课堂签到信息.stuNum "
+										+ "group by "+className+"课堂签到信息.stuNum";
+				resultSet=DBUtils.select(connection, getData);
+				while(resultSet.next()){
+					String name=resultSet.getString("name");
+					String stuid=resultSet.getString("stuId");
+					int count=resultSet.getInt(3);
+					String dataReturned=name+"("+stuid+") 签到"+count+"次";
+					outputStream.writeUTF(dataReturned);
+				}
+				outputStream.writeUTF("###the sigin info for all students is over!!!");
+			}
+			
+			
+            else if(cmdkind.equals("checkStudent")){
+            	String className=inputStream.readUTF();
+            	String studentId=inputStream.readUTF();
+            	String getData="select name,signinTime "
+            			+ "from "+className+"课堂学生信息,"+className+"课堂签到信息,studentReg "
+            					+ "where "+className+"课堂学生信息.stuId=studentReg.idnum='"+studentId+"' "
+            							+ "and "+className+"课堂签到信息.stuNum=studentReg.num";
+            	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            	resultSet=DBUtils.select(connection, getData);
+            	while(resultSet.next()){
+            			String name=resultSet.getString("name");
+            			Date date=resultSet.getDate("signinTime");
+            			String time=df.format(date);
+            			String dataReturned=name+" 签到:"+time;
+            			outputStream.writeUTF(dataReturned);
+            	}
+            	outputStream.writeUTF("###the sigin info for this student is over!!!");
+			}
+			
+			
+            else if(cmdkind.equals("checkMajor")){
+            	String className=inputStream.readUTF();
+            	String major=inputStream.readUTF();
+            	String getData="select name,idnum,signinTime "
+            			+ "from "+className+"课堂签到信息,studentReg "
+            					+ "where "+className+"课堂签到信息.stuNum=studentReg.num "
+            							+ "and studentReg.major='"+major+"'";
+            	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            	resultSet=DBUtils.select(connection, getData);
+            	while(resultSet.next()){
+            			String name=resultSet.getString("name");
+            			String stuid=resultSet.getString("idnum");
+            			Date date=resultSet.getDate("signinTime");
+            			String time=df.format(date);
+            			String dataReturned=name+"("+stuid+") 签到:"+time;
+            			outputStream.writeUTF(dataReturned);
+            	}
+            	outputStream.writeUTF("###the sigin info for this major is over!!!");
+			}
+			
+			
+            else if(cmdkind.equals("checkTime")){
+            	String className=inputStream.readUTF();
+            	int year=inputStream.readInt();
+            	int month=inputStream.readInt();
+            	int day=inputStream.readInt();
+            	String getDate="select * from "+className+"课堂签到信息";
+            	boolean find=false;
+            	Date date = null;
+            	resultSet=DBUtils.select(connection, getDate);
+            	while(resultSet.next()){
+            		date=resultSet.getDate("signinTime");
+            		int y=date.getYear();
+            		int m=date.getMonth();
+            		int d=date.getDay();
+            		if(y==year && m==month && d==day){
+            			find=true;
+            			break;
+            		}
+            	}
+            	if(find){
+            		String getData="select name,idnum,signinTime "
+            				+ "from "+className+"课堂签到信息,studentReg "
+            						+ "where "+className+"课堂签到信息.signinTime="+date+" "
+            								+ "and "+className+"课堂签到信息.stuNum=studentReg.num";
+            		resultSet=DBUtils.select(connection, getData);
+            		while(resultSet.next()){
+            			String name=resultSet.getString("name");
+            			String stuid=resultSet.getString("idnum");
+            			String stumajor=resultSet.getString("major");
+            			
+            			String dataReturned=name+"("+stuid+")("+stumajor+")";
+            			outputStream.writeUTF(dataReturned);
+            		}
+            	}
+            	outputStream.writeUTF("###the sigin info for this time is over!!!");
+			}
+			
+			
 			inputStream.close();
 			outputStream.close();
 		}catch (Exception e) {

@@ -13,11 +13,22 @@ public class main {
 	private static boolean classInfoExist=false;
 	
 	//创建注册信息表
-	private static final String createStuReg="create table studentReg(num int primary key,name nvarchar(10),psw nvarchar(20),"
-			+ "idnum nvarchar(20),major nvarchar(40))";
-	private static final String createTeaReg="create table teacherReg(num int primary key,name nvarchar(10),psw nvarchar(20))";
+	private static final String createStuReg="create table studentReg(num int primary key,"
+			+ "name nvarchar(10),"
+			+ "psw nvarchar(20),"
+			+ "idnum nvarchar(20),"
+			+ "major nvarchar(40))";
+	private static final String createTeaReg="create table teacherReg(num int primary key,"
+			+ "name nvarchar(10),"
+			+ "psw nvarchar(20))";
 	//create class info table
-	private static final String createClassInfo="create table classInfo(num int primary key,name nvarchar(40),timeLimit int,teacherNum int,isOpen int,latitude real,longitude real)";
+	private static final String createClassInfo="create table classInfo(num int primary key,"
+			+ "name nvarchar(40),"
+			+ "timeLimit int,"
+			+ "teacherNum int,"
+			+ "isOpen int,"
+			+ "latitude decimal(38,20),"
+			+ "longitude decimal(38,20))";
 
 	public static void main(String args[]){
 		//连接数据库
